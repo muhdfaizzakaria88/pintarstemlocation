@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadangan Lokasi PINTAR STEM</title>
+    
+    <!-- Tailwind CSS untuk reka bentuk premium dan responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Pustaka React & Babel versi stabil untuk menjalankan React terus dalam browser tanpa build tools -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.3/babel.min.js" crossorigin></script>
+    
+    <!-- Pustaka jsPDF untuk menjana laporan PDF secara terus di peranti -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* Memastikan peralihan animasi skrin kelihatan lancar */
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-[#f8fafc] font-sans antialiased text-slate-900">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+
+        const WindIcon = () => (
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+        );
+        const CpuIcon = () => (
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3"/></svg>
+        );
+        const BoxIcon = () => (
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        );
+        const ZapIcon = () => (
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        );
+        const PuzzleIcon = () => (
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11.75 3.5H12a4 4 0 0 1 4 4v.25M16 11.75V12a4 4 0 0 1-4 4h-.25m-3.5 0H8a4 4 0 0 1-4-4v-.25m0-3.5V8a4 4 0 0 1 4-4h.25M12 2v3M22 12h-3M12 22v-3M2 12h3"/></svg>
+        );
+        const LayoutIcon = () => (
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        );
+        const FileCheckIcon = () => (
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/></svg>
+        );
+        const CameraIcon = () => (
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        );
+
+        const colorMaps = {
+            blue: { bgLight: 'bg-blue-100', text: 'text-blue-600', borderActive: 'border-blue-500', bgActive: 'bg-blue-50', buttonBg: 'bg-blue-600 hover:bg-blue-700', shadow: 'shadow-blue-100' },
+            purple: { bgLight: 'bg-purple-100', text: 'text-purple-600', borderActive: 'border-purple-500', bgActive: 'bg-purple-50', buttonBg: 'bg-purple-600 hover:bg-purple-700', shadow: 'shadow-purple-100' },
+            orange: { bgLight: 'bg-orange-100', text: 'text-orange-600', borderActive: 'border-orange-500', bgActive: 'bg-orange-50', buttonBg: 'bg-orange-600 hover:bg-orange-700', shadow: 'shadow-orange-100' },
+            yellow: { bgLight: 'bg-yellow-100', text: 'text-yellow-600', borderActive: 'border-yellow-500', bgActive: 'bg-yellow-50', buttonBg: 'bg-yellow-600 hover:bg-yellow-700', shadow: 'shadow-yellow-100' },
+            pink: { bgLight: 'bg-pink-100', text: 'text-pink-600', borderActive: 'border-pink-500', bgActive: 'bg-pink-50', buttonBg: 'bg-pink-600 hover:bg-pink-700', shadow: 'shadow-pink-100' }
+        };
+
+        const LocationStep = ({ section, title, subtitle, icon: Icon, color, formData, updateField, onImageClick, onBack, onNext }) => {
+            const data = formData[section];
+            const theme = colorMaps[color];
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="text-center">
+                        <div className={`${theme.bgLight} w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm`}>
+                            <Icon />
+                        </div>
+                        <h1 className="text-xl font-bold text-gray-800 tracking-tight">{title}</h1>
+                        <p className="text-xs text-gray-500 mt-1 font-medium">{subtitle}</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 ml-1">Nama Lokasi</label>
+                            <input 
+                                type="text"
+                                className="w-full p-3 bg-white border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all shadow-sm text-sm"
+                                placeholder="Contoh: Dewan Bestari / Makmal A"
+                                value={data.name}
+                                onChange={(e) => updateField(section, 'name', e.target.value)}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className={`flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${data.projector ? theme.bgActive + ' ' + theme.borderActive : 'bg-gray-50 border-gray-100'}`}
+                                 onClick={() => updateField(section, 'projector', !data.projector)}>
+                                <div className={`w-5 h-5 rounded border flex items-center justify-center ${data.projector ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}>
+                                    {data.projector && (
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                                    )}
+                                </div>
+                                <span className="text-xs font-bold text-gray-700 select-none">Projector</span>
+                            </div>
+
+                            <div className={`flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${data.micSpeaker ? theme.bgActive + ' ' + theme.borderActive : 'bg-gray-50 border-gray-100'}`}
+                                 onClick={() => updateField(section, 'micSpeaker', !data.micSpeaker)}>
+                                <div className={`w-5 h-5 rounded border flex items-center justify-center ${data.micSpeaker ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}>
+                                    {data.micSpeaker && (
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                                    )}
+                                </div>
+                                <span className="text-xs font-bold text-gray-700 select-none">Mic & Speaker</span>
+                            </div>
+                        </div>
+
+                        {section === 'ai' && (
+                            <div className="space-y-4 bg-slate-50 p-4 rounded-2xl border-2 border-slate-100 shadow-inner">
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Prasarana Laptop</label>
+                                <div className="flex items-center gap-3 cursor-pointer p-1" onClick={() => updateField('ai', 'laptop', !data.laptop)}>
+                                    <div className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${data.laptop ? 'bg-purple-600 border-purple-600' : 'bg-white border-gray-300'}`}>
+                                        {data.laptop && (
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                                        )}
+                                    </div>
+                                    <span className="text-sm font-bold text-gray-700">Komputer Riba (Ada/Tiada)</span>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jumlah Laptop Milik Sekolah</label>
+                                    <input 
+                                        type="text"
+                                        className="w-full p-3 text-sm bg-white border-2 border-gray-100 rounded-xl focus:border-purple-500 outline-none shadow-sm"
+                                        placeholder="Contoh: 30 Unit"
+                                        value={data.jumlahLaptopMilikSekolah}
+                                        onChange={(e) => updateField('ai', 'jumlahLaptopMilikSekolah', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <div 
+                            onClick={() => onImageClick(section)}
+                            className="relative group border-2 border-dashed border-slate-200 rounded-2xl aspect-video flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all overflow-hidden bg-slate-50/50 shadow-inner"
+                        >
+                            {data.preview ? (
+                                <div className="w-full h-full relative">
+                                    <img src={data.preview} className="w-full h-full object-cover" alt="Preview" />
+                                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                        <CameraIcon />
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="text-slate-300 mb-2 group-hover:text-blue-400 transition-colors">
+                                        <CameraIcon />
+                                    </div>
+                                    <span className="text-slate-400 text-xs font-bold tracking-wide">AMBIL / MUATNAIK GAMBAR</span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button onClick={onBack} className="flex-1 bg-white border-2 border-gray-100 text-gray-500 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-gray-50">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="15 18 9 12 15 6"/></svg> Kembali
+                        </button>
+                        <button onClick={onNext} className={`${theme.buttonBg} text-white flex-[2] py-4 rounded-2xl font-bold flex items-center justify-center gap-2 ${theme.shadow} shadow-xl active:scale-95 transition-all`}>
+                            Seterusnya <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [currentStep, setCurrentStep] = useState(0); 
+            
+            const [generalInfo, setGeneralInfo] = useState({
+                namaSekolah: '',
+                tarikh: new Date().toISOString().split('T')[0] 
+            });
+
+            const [formData, setFormData] = useState({
+                drone: { name: '', projector: false, micSpeaker: false, preview: null },
+                ai: { name: '', projector: false, micSpeaker: false, laptop: false, jumlahLaptopMilikSekolah: '', preview: null },
+                design3d: { name: '', projector: false, micSpeaker: false, preview: null },
+                ev: { name: '', projector: false, micSpeaker: false, preview: null },
+                robomath: { name: '', projector: false, micSpeaker: false, preview: null }
+            });
+
+            const fileInputRef = useRef(null);
+
+            const handleImageUpload = (e, section) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setFormData(prev => ({
+                            ...prev,
+                            [section]: { ...prev[section], preview: reader.result }
+                        }));
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const updateField = (section, field, value) => {
+                setFormData(prev => ({
+                    ...prev,
+                    [section]: { ...prev[section], [field]: value }
+                }));
+            };
+
+            const triggerImageClick = (section) => {
+                fileInputRef.current.onchange = (e) => handleImageUpload(e, section);
+                fileInputRef.current.click();
+            };
+
+            const generatePDF = () => {
+                if (!window.jspdf) {
+                    alert("Sistem PDF sedang dimuatkan, sila tunggu seketika...");
+                    return;
+                }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                const sections = [
+                    { id: 'drone', title: '1. Cadangan Lokasi Asas Drone', desc: '(Tempat yang luas seperti dewan)' },
+                    { id: 'ai', title: '2. Cadangan Lokasi AI', desc: '(Bilik mempunyai laptop dan akses internet)' },
+                    { id: 'design3d', title: '3. Cadangan Lokasi Rekabentuk Kejuruteraan 3D', desc: '(Bilik mempunyai projector seperti Makmal Sains)' },
+                    { id: 'ev', title: '4. Cadangan Lokasi Mobiliti EV', desc: '(Bilik mempunyai projector seperti Makmal Sains)' },
+                    { id: 'robomath', title: '5. Cadangan Lokasi RoboMath Quest', desc: '(Bilik sederhana luas seperti Perpustakaan)' }
+                ];
+
+                sections.forEach((s, index) => {
+                    if (index > 0) doc.addPage();
+                    
+                    doc.setFontSize(18);
+                    doc.setTextColor(30, 64, 175);
+                    doc.text('LAPORAN CADANGAN LOKASI PINTAR STEM', 105, 15, { align: 'center' });
+                    
+                    doc.setFontSize(11);
+                    doc.setTextColor(100);
+                    const sekolahText = generalInfo.namaSekolah ? generalInfo.namaSekolah : 'Tiada Maklumat Sekolah';
+                    const tarikhText = generalInfo.tarikh ? generalInfo.tarikh : '-';
+                    doc.text(`${sekolahText}  |  Tarikh: ${tarikhText}`, 105, 22, { align: 'center' });
+
+                    doc.setDrawColor(200);
+                    doc.line(20, 26, 190, 26);
+
+                    const data = formData[s.id];
+                    doc.setTextColor(0);
+                    doc.setFontSize(14);
+                    doc.text(s.title, 20, 38);
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text(s.desc, 20, 43);
+
+                    doc.setTextColor(0);
+                    doc.setFontSize(12);
+                    doc.text(`Nama Lokasi: ${data.name || '-'}`, 25, 58);
+                    doc.text(`Projector: ${data.projector ? 'Ada' : 'Tiada'}`, 25, 68);
+                    doc.text(`Mic & Speaker: ${data.micSpeaker ? 'Ada' : 'Tiada'}`, 25, 78);
+                    
+                    if (s.id === 'ai') {
+                        doc.text(`Komputer Riba: ${data.laptop ? 'Ada' : 'Tiada'}`, 25, 88);
+                        doc.text(`Jumlah Laptop Milik Sekolah: ${data.jumlahLaptopMilikSekolah || '0'}`, 25, 98);
+                    }
+
+                    if (data.preview) {
+                        const imgY = s.id === 'ai' ? 108 : 88;
+                        doc.text('Gambar Lokasi:', 25, imgY);
+                        try {
+                            doc.addImage(data.preview, 'JPEG', 25, imgY + 5, 160, 90);
+                        } catch (e) {
+                            console.error("Gagal memasukkan imej ke PDF", e);
+                        }
+                    }
+                });
+
+                const fileName = generalInfo.namaSekolah ? `Laporan_${generalInfo.namaSekolah.replace(/\s+/g, '_')}.pdf` : 'Laporan_PINTAR_STEM.pdf';
+                doc.save(fileName);
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4">
+                    <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden border border-slate-100 relative">
+                        
+                        {currentStep > 0 && currentStep < 6 && (
+                            <div className="absolute top-0 left-0 w-full flex h-1.5 bg-slate-100 z-10">
+                                <div className="h-full bg-blue-600 transition-all duration-700 ease-out" style={{ width: `${(currentStep / 5) * 100}%` }}></div>
+                            </div>
+                        )}
+
+                        <div className="p-8">
+                            {currentStep === 0 ? (
+                                <div className="py-6 text-center space-y-6 animate-fade-in">
+                                    <div className="relative inline-block">
+                                        <div className="absolute inset-0 bg-blue-400 blur-2xl opacity-20 rounded-full"></div>
+                                        <div className="bg-blue-600 w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto rotate-6 shadow-xl shadow-blue-200 relative">
+                                            <LayoutIcon />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none">Cadangan Lokasi<br/><span className="text-blue-600">PINTAR STEM</span></h1>
+                                    </div>
+
+                                    <div className="space-y-4 text-left w-full mt-6 bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Nama Sekolah</label>
+                                            <input 
+                                                type="text"
+                                                className="w-full p-3.5 bg-white border border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-all shadow-sm text-sm"
+                                                placeholder="Contoh: SMK Bangsar"
+                                                value={generalInfo.namaSekolah}
+                                                onChange={(e) => setGeneralInfo({...generalInfo, namaSekolah: e.target.value})}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">Tarikh Laporan</label>
+                                            <input 
+                                                type="date"
+                                                className="w-full p-3.5 bg-white border border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-all shadow-sm text-sm text-slate-700"
+                                                value={generalInfo.tarikh}
+                                                onChange={(e) => setGeneralInfo({...generalInfo, tarikh: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <button 
+                                        onClick={() => setCurrentStep(1)}
+                                        className="w-full mt-4 bg-slate-900 text-white py-5 rounded-[1.5rem] font-bold text-lg shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                                    >
+                                        Mula Laporan Sekarang <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="9 18 15 12 9 6"/></svg>
+                                    </button>
+                                </div>
+                            ) : currentStep === 1 ? (
+                                <LocationStep 
+                                    section="drone" title="Cadangan Lokasi Asas Drone" subtitle="Tempat yang luas seperti dewan" 
+                                    icon={WindIcon} color="blue" formData={formData} updateField={updateField} onImageClick={triggerImageClick} onBack={() => setCurrentStep(0)} onNext={() => setCurrentStep(2)} 
+                                />
+                            ) : currentStep === 2 ? (
+                                <LocationStep 
+                                    section="ai" title="Cadangan Lokasi AI" subtitle="Bilik mempunyai laptop & akses internet" 
+                                    icon={CpuIcon} color="purple" formData={formData} updateField={updateField} onImageClick={triggerImageClick} onBack={() => setCurrentStep(1)} onNext={() => setCurrentStep(3)} 
+                                />
+                            ) : currentStep === 3 ? (
+                                <LocationStep 
+                                    section="design3d" title="Lokasi Rekabentuk 3D" subtitle="Mempunyai projector (cth: Makmal Sains)" 
+                                    icon={BoxIcon} color="orange" formData={formData} updateField={updateField} onImageClick={triggerImageClick} onBack={() => setCurrentStep(2)} onNext={() => setCurrentStep(4)} 
+                                />
+                            ) : currentStep === 4 ? (
+                                <LocationStep 
+                                    section="ev" title="Cadangan Lokasi Mobiliti EV" subtitle="Mempunyai projector (cth: Makmal Sains)" 
+                                    icon={ZapIcon} color="yellow" formData={formData} updateField={updateField} onImageClick={triggerImageClick} onBack={() => setCurrentStep(3)} onNext={() => setCurrentStep(5)} 
+                                />
+                            ) : currentStep === 5 ? (
+                                <LocationStep 
+                                    section="robomath" title="Lokasi RoboMath Quest" subtitle="Bilik sederhana luas (cth: Perpustakaan)" 
+                                    icon={PuzzleIcon} color="pink" formData={formData} updateField={updateField} onImageClick={triggerImageClick} onBack={() => setCurrentStep(4)} onNext={() => setCurrentStep(6)} 
+                                />
+                            ) : (
+                                <div className="py-12 text-center space-y-10 animate-fade-in">
+                                    <div className="relative inline-block">
+                                        <div className="absolute inset-0 bg-green-400 blur-2xl opacity-20 rounded-full animate-pulse"></div>
+                                        <div className="bg-green-500 w-28 h-28 rounded-full flex items-center justify-center mx-auto shadow-2xl shadow-green-100 relative">
+                                            <FileCheckIcon />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Selesai!</h2>
+                                        <p className="text-slate-400 px-4 text-sm font-medium">Data telah sedia untuk dijana. Pastikan semua gambar dan maklumat adalah tepat.</p>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <button 
+                                            onClick={generatePDF}
+                                            className="w-full bg-green-600 text-white py-5 rounded-[1.5rem] font-bold text-lg shadow-2xl shadow-green-200 hover:bg-green-700 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                                        >
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Jana Laporan PDF
+                                        </button>
+                                        <button 
+                                            onClick={() => setCurrentStep(5)}
+                                            className="w-full bg-slate-50 text-slate-500 py-4 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-100 transition-all active:scale-[0.98]"
+                                        >
+                                            Semak Semula Jawapan
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {}
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" />
+                    
+                    <div className="mt-10 flex flex-col items-center gap-2 opacity-40">
+                        <div className="h-px w-12 bg-slate-300"></div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">PINTAR STEM • DIGITAL REPORT</p>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
